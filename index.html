@@ -4,9 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pem: Coming Soon</title>
-<meta name="description" content="Pem, your household's personal TV programming director. Every streaming service has an algorithm for you. None of them has an algorithm for your household. iPhone and Apple TV apps coming soon.">
+<meta name="description" content="Meet Pem. Less debating. More watching. Your streaming apps know everything you like. So why does choosing what to watch together take forever? iPhone and Apple TV apps coming soon.">
 <meta name="theme-color" content="#0e0e0e">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!-- Google Analytics (property pemtv.com in the Pem account). Only runs on the live site, so local previews don't count as visits. -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  if (/(^|\.)pemtv\.com$/.test(location.hostname)) {
+    var ga = document.createElement("script");
+    ga.async = true; ga.src = "https://www.googletagmanager.com/gtag/js?id=G-8PQTSDKS2W";
+    document.head.appendChild(ga);
+    gtag("js", new Date());
+    gtag("config", "G-8PQTSDKS2W", { allow_google_signals: false, allow_ad_personalization_signals: false });
+  }
+</script>
 <link rel="stylesheet" href="site.css">
 <style>
   main { position: relative; overflow-x: clip; }
@@ -32,10 +44,18 @@
   @media (prefers-reduced-motion: reduce) { .digit .strip { transition: none; } }
 
   /* ---------- Section 1: hero ---------- */
-  .hero { position: relative; z-index: 2; text-align: center; min-height: min(86vh, 820px); display: flex; align-items: center; padding: 40px 0 80px; }
-  .hero .wrap { width: 100%; will-change: opacity, transform; position: relative; top: 100px; }
-  .hero h1 { font-size: clamp(34px, 5vw, 55px); line-height: 1.06; max-width: 18em; margin: 0 auto; }
-  .hero h1 .light { display: block; }
+  /* Two lines, one at a time: the stage is tall and its frame stays pinned while you scroll through it.
+     The first line fades up and away, the second takes its place, then the frame scrolls on. */
+  .hero { position: relative; z-index: 3; text-align: center; height: 250vh; margin-top: -76px; }
+  .hero .pin { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; padding-top: 76px; }
+  .hero .lines { width: 100%; display: grid; position: relative; z-index: 4; } /* the hero lines sit in front of the badges */
+  .hero .line { grid-area: 1 / 1; will-change: opacity, transform; }
+  .hero h1, .hero .h1 { font-family: var(--display); font-size: clamp(34px, 5vw, 55px); line-height: 1.06; letter-spacing: -0.01em; max-width: 18em; margin: 0 auto; }
+  .hero h1, .hero .h1 { font-weight: 500; }
+  .hero #lineTwo { opacity: 0; visibility: hidden; }
+  .hero .more { display: block; width: 26px; height: 40px; margin: 44px auto 0; color: var(--soft); animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
+  @media (prefers-reduced-motion: reduce) { .hero .more { animation: none; } }
   .sub { font-family: var(--display); font-weight: 600; font-size: clamp(13px, 1.2vw, 15px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--soft); margin: 0; }
 
   /* The service badges: scattered around the hero, then pulled down into the app screenshots as you scroll */
@@ -61,9 +81,11 @@
   /* Three times the old gap above it; its content fades in as the hero's line fades out */
   .pitch { position: relative; z-index: 2; text-align: center; padding: 280px 0 110px; }
   .pitch > .wrap { will-change: opacity, transform; }
-  .pitch .pem-mark { height: clamp(45px, 5.6vw, 67px); margin: 0 auto 56px; }
+  .pitch .pem-mark { height: clamp(36px, 4.5vw, 54px); margin: 0 auto 56px; }
   .pitch .sub { color: var(--accent); }
-  .pitch h2 { font-size: clamp(32px, 4.6vw, 55px); line-height: 1.05; max-width: 14em; margin: 0 auto 22px; font-weight: 500; }
+  .pitch h2 b { font-weight: 800; }
+  .pitch h2 .nw { white-space: nowrap; }
+  .pitch h2 { font-size: clamp(32px, 4.6vw, 55px); line-height: 1.05; max-width: 16em; margin: 0 auto 22px; font-weight: 500; }
   .peek { max-width: 1080px; margin: 64px auto 0; height: clamp(260px, 36vw, 490px); overflow: hidden;
     -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 45%, transparent 100%); }
   .devices { display: grid; text-align: left; }
@@ -195,9 +217,9 @@
 
   /* ---------- Narrow screens ---------- */
   @media (max-width: 720px) {
-    .hero { min-height: 78vh; padding: 30px 0 60px; }
     .sub { font-size: 11px; letter-spacing: 0.12em; }
     br.wide { display: none; }
+    .hero .lines { padding: 0 46px; }
     .pitch { padding: 160px 0 70px; }
     .notify { padding: 70px 0 80px; }
     .apps { padding-bottom: 10px; }
@@ -231,13 +253,22 @@
 </header>
 
 <main>
-  <!-- Badges for the services, filled in by the script below -->
-  <div class="funnel" aria-hidden="true"></div>
 
-  <!-- Section 1: hero. Fades out as you scroll -->
-  <section class="hero">
-    <div class="wrap" id="heroCopy">
-      <h1>Every streaming service<br class="wide"> has an algorithm for you. <span class="light">None of them have an<br class="wide"> algorithm for your household.</span></h1>
+  <!-- Section 1: hero. Two lines in turn, pinned while you scroll -->
+  <section class="hero" id="hero">
+    <div class="pin">
+      <!-- Badges for the services, filled in by the script below. They live in the pinned frame,
+           so they stay perfectly still while it's pinned and only move once it scrolls on. -->
+      <div class="funnel" aria-hidden="true"></div>
+      <div class="wrap lines">
+        <div class="line" id="lineOne">
+          <h1>Your streaming apps know<br class="wide"> everything <em>you</em> like.</h1>
+          <svg class="more" viewBox="0 0 26 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M13 2v34M3 26l10 10 10-10"/></svg>
+        </div>
+        <div class="line" id="lineTwo">
+          <p class="h1">So why does choosing what<br class="wide"> to watch together take forever?</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -245,8 +276,8 @@
   <section class="pitch">
     <div class="wrap" id="pitchCopy">
       <svg class="pem-mark" viewBox="0 0 87 45" role="img" aria-label="Pem"><g class="frame"><rect x="0" y="0" width="87" height="4"/><rect x="0" y="8" width="9" height="3"/><rect x="0" y="15" width="9" height="5"/><rect x="0" y="23" width="9" height="7"/><rect x="78" y="8" width="9" height="3"/><rect x="78" y="15" width="9" height="5"/><rect x="0" y="35" width="87" height="10"/></g><rect class="period" x="78" y="23" width="9" height="7"/><text x="11.26" y="30" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27" letter-spacing="0">Pem</text></svg>
-      <h2>Your household's personal TV programming director.</h2>
-      <p class="sub">iPhone and Apple TV apps coming soon</p>
+      <h2><b>Meet Pem.</b><br> <span class="nw">Less debating.</span> <span class="nw">More watching.</span></h2>
+      <p class="sub">iPhone and Apple TV apps &ndash; coming soon</p>
 
       <div class="peek" id="peek">
         <div class="devices">
@@ -265,7 +296,7 @@
   <section class="apps">
     <div class="grid">
       <article class="tile blue">
-        <p class="kicker">On your iPhone</p>
+        <p class="kicker">With the iPhone App</p>
         <h3>Your tastes. Your lists.<br> Your influence.</h3>
         <div class="phone-crop"><svg class="draw-phone" viewBox="0 0 270 340" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="A drawing of Pem on iPhone: your Watch List and the titles you've seen">
 <rect x="4" y="4" width="262" height="420" rx="40" stroke-width="2.4"/>
@@ -300,7 +331,7 @@
       </article>
       <article class="tile news">
         <div class="tv-copy">
-          <p class="kicker">On Apple TV</p>
+          <p class="kicker">On your Apple TV</p>
           <h3 class="two">Skip the negotiations and<br class="wide"> get straight to the good stuff.</h3>
           <p class="copy">By combining the tastes of multiple people, Pem can introduce everyone to something outside their usual viewing habits.</p>
         </div>
@@ -332,7 +363,7 @@
       <h2>Questions?</h2>
       <details open>
         <summary><span class="no" aria-hidden="true">01</span><span class="q">What is Pem?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
-        <p>Every streaming service has an algorithm for you, but none of them plans for your household. Pem changes that by combining everyone's tastes, watch lists and subscriptions into one simple, personalized TV guide for the time you spend watching together.</p>
+        <p>Pem combines everyone's tastes, watch lists and subscriptions into one simple, curated &ldquo;TV guide&rdquo; for the time you spend watching TV together.</p>
         <p>Whether you have an hour or a whole evening, Pem builds a lineup everyone can enjoy. No endless scrolling, no debating what to watch. Just more time enjoying TV together.</p>
       </details>
       <details>
@@ -473,6 +504,7 @@
       try { mine ? localStorage.setItem("pemReaction", mine) : localStorage.removeItem("pemReaction"); } catch (e) {}
       showReactions(reacts);
       b.classList.remove("pop"); b.offsetWidth; if (mine) b.classList.add("pop");
+      gtag("event", "reaction", { reaction: mine || "cleared" });
       if (!SIGNUP_URL) return;
       fetch(SIGNUP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ react: pick, undo: undo }) })
@@ -526,6 +558,8 @@
                : "We're excited you're interested in Pem. You'll be among the first to know when the apps are available.") + "</p></div>";
     slot.querySelector(".done-box").focus({ preventScroll: true });
     if (!already) confetti();
+    // counts the signup in Analytics (no email is sent, just that one happened)
+    gtag("event", already ? "sign_up_repeat" : "sign_up", { method: "waiting_list" });
   }
 
   // Jiggle the form every time it scrolls well into view (it re-arms once it has left the screen)
@@ -648,48 +682,66 @@
     var main = document.querySelector("main").getBoundingClientRect();
     var h = hero.getBoundingClientRect(), p = peek.getBoundingClientRect();
     var narrow = innerWidth < 720, small = narrow ? 0.5 : 1;
+    var pinH = hero.querySelector(".pin").offsetHeight;
+    var heroDoc = h.top + scrollY;
+    // how far you scroll while the frame is pinned (both lines), and the scroll where that ends
+    var hold = Math.max(0, hero.offsetHeight - pinH);
     geo = {
-      heroLeft: h.left - main.left, heroTop: h.top - main.top, heroW: h.width, heroH: h.height,
+      heroLeft: 0, heroTop: 0, heroW: h.width, heroH: pinH,
+      heroDoc: heroDoc, hold: hold, start: heroDoc + hold, vh: pinH,
       // aim just above the top edge of the TV screenshot, so every badge is gone before it gets there
-      tx: p.left - main.left + p.width / 2, ty: p.top - main.top - 28,
-      end: Math.max(1, (p.top + scrollY) - 28 - innerHeight * 0.55)
+      // (measured from where the frame sits once it stops being pinned)
+      tx: p.left - h.left + p.width / 2, ty: (p.top + scrollY) - (heroDoc + hold) - 28
     };
+    geo.end = Math.max(1, (p.top + scrollY) - 28 - innerHeight * 0.55 - geo.start);
     badges.forEach(function (b) {
       var w = b.w * small, hgt = w * 0.66;
       // on phones, hug the very edges so the headline stays clear
       var x = narrow ? (b.x < 0.5 ? b.x * 0.3 : 1 - (1 - b.x) * 0.3) : b.x;
       b.bx = geo.heroLeft + x * geo.heroW - w / 2;
-      b.by = geo.heroTop + b.y * geo.heroH - hgt / 2;
+        b.by = geo.heroTop + b.y * geo.heroH - hgt / 2;
       b.el.firstChild.style.setProperty("--w", w + "px");
       b.cw = w; b.ch = hgt;
     });
     draw();
   }
   function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
-  // The hero's line fades out as you scroll; section 2 fades in to take its place
-  var heroCopy = document.getElementById("heroCopy"), pitchCopy = document.getElementById("pitchCopy");
+  // The hero's two lines take turns while the frame is pinned; section 2 fades in after
+  // The hero's three lines take turns while the frame is pinned; section 2 fades in after
+  var lines = ["lineOne", "lineTwo"].map(function (id) { return document.getElementById(id); });
+  var pitchCopy = document.getElementById("pitchCopy");
+  function clamp(v) { return Math.min(1, Math.max(0, v)); }
   function fades() {
+    if (!geo) return;
+    var s = scrollY - geo.heroDoc, vh = geo.vh, move = reduced ? 0 : 1, last = lines.length - 1;
+    lines.forEach(function (el, i) {
+      // each line arrives about one screen after the one before it; the last leaves as the frame scrolls on
+      var inn = i === 0 ? 1 : clamp((s - vh * (i - 0.55)) / (vh * 0.35));
+      var out = i === last ? clamp((s - geo.hold - vh * 0.05) / (vh * 0.4)) : clamp((s - vh * (i + 0.2)) / (vh * 0.35));
+      el.style.opacity = inn * (1 - out);
+      el.style.transform = "translateY(" + ((40 * (1 - inn) - 40 * out) * move) + "px)";
+      el.style.visibility = inn <= 0 || out >= 1 ? "hidden" : "visible";
+    });
     if (reduced) return;
-    var out = Math.min(1, Math.max(0, scrollY / (hero.offsetHeight * 0.5)));
-    heroCopy.style.opacity = 1 - out;
-    heroCopy.style.transform = "translateY(" + (-40 * out) + "px)";
     var top = pitchCopy.getBoundingClientRect().top;
-    var inn = Math.min(1, Math.max(0, (innerHeight - top) / (innerHeight * 0.5)));
+    var inn = clamp((innerHeight - top) / (innerHeight * 0.5));
     pitchCopy.style.opacity = inn;
     pitchCopy.style.transform = "translateY(" + (40 * (1 - inn)) + "px)";
   }
   function draw() {
     fades();
     if (!geo) return;
-    var p = reduced ? 0 : Math.min(1, Math.max(0, scrollY / geo.end));
+    // while the frame is pinned the badges ride along with it, so they stay on the sides
+    var p = reduced ? 0 : clamp((scrollY - geo.start) / geo.end);
     badges.forEach(function (b, i) {
       // stagger: some badges start a touch later so they arrive as a stream
       var lag = (i % 5) * 0.04;
-      var t = ease(Math.min(1, Math.max(0, (p - lag) / (1 - lag))));
+      var t = ease(clamp((p - lag) / (1 - lag)));
       // a funnel: each badge curves inward first, then drops into the middle of the screenshots
       var tx = 1 - Math.pow(1 - t, 2.2), ty = Math.pow(t, 1.7);
+      var by = b.by;
       var x = b.bx + (geo.tx - b.cw / 2 - b.bx) * tx;
-      var y = b.by + (geo.ty - b.ch / 2 - b.by) * ty;
+      var y = by + (geo.ty - b.ch / 2 - by) * ty;
       var sc = 1 - 0.7 * t;
       var rot = b.r * (1 - t);
       var op = t < 0.55 ? 1 : Math.max(0, 1 - (t - 0.55) / 0.37);
