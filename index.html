@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pem: Coming Soon</title>
+<meta name="description" content="Pem, your household's personal TV programming director. Every streaming service has an algorithm for you. None of them has an algorithm for your household. iPhone and Apple TV apps coming soon.">
+<meta name="theme-color" content="#0e0e0e">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+<style>
+  main { position: relative; overflow-x: clip; }
+
+  /* ---------- Header: just the waiting-list counter, centered ---------- */
+  .masthead { padding: 14px 0; position: sticky; top: 0; z-index: 6; pointer-events: none; }
+  .masthead .ticker { pointer-events: auto; background: rgba(14, 14, 14, 0.86); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 8px 14px 8px 8px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  .masthead .row { display: flex; justify-content: center; }
+
+  /* Ticker: odometer digits in square boxes */
+  .ticker { display: flex; align-items: center; gap: 12px; }
+  .digits { display: flex; gap: 3px; }
+  .digit { width: 24px; height: 32px; background: var(--field); overflow: hidden; position: relative; }
+  .digit::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(0,0,0,0.55); }
+  .digit .strip { display: flex; flex-direction: column; transition: transform 1.1s cubic-bezier(.2,.8,.2,1); }
+  .digit .strip span { height: 32px; line-height: 32px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: 0; color: var(--ink); }
+  .digit.lead .strip span { color: var(--soft); opacity: 0.45; }
+  .digit.comma { width: 8px; background: none; }
+  .digit.comma::after { display: none; }
+  .digit.comma span { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 32px; color: var(--ink); }
+  .ticker-label { font-family: var(--display); font-weight: 800; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; line-height: 1.4; color: var(--soft); }
+  .ticker-label b { color: var(--ink); font-weight: 800; }
+  @media (prefers-reduced-motion: reduce) { .digit .strip { transition: none; } }
+
+  /* ---------- Section 1: hero ---------- */
+  .hero { position: relative; z-index: 2; text-align: center; min-height: min(86vh, 820px); display: flex; align-items: center; padding: 40px 0 80px; }
+  .hero .wrap { width: 100%; will-change: opacity, transform; position: relative; top: 100px; }
+  .hero h1 { font-size: clamp(34px, 5vw, 55px); line-height: 1.06; max-width: 18em; margin: 0 auto; }
+  .hero h1 .light { display: block; }
+  .sub { font-family: var(--display); font-weight: 600; font-size: clamp(13px, 1.2vw, 15px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--soft); margin: 0; }
+
+  /* The service badges: scattered around the hero, then pulled down into the app screenshots as you scroll */
+  .funnel { position: absolute; left: 0; top: 0; width: 100%; height: 0; pointer-events: none; z-index: 3; }
+  .svc { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+  .svc i { display: flex; align-items: center; justify-content: center; gap: 4px; width: var(--w); height: calc(var(--w) * 0.66);
+    border: 1.5px solid var(--ink); border-radius: calc(var(--w) * 0.14); color: var(--ink); font-style: normal;
+    font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1; background: var(--paper);
+    animation: drift 7s ease-in-out infinite alternate; animation-delay: var(--d); }
+  .svc i.dim { opacity: 0.55; }
+  .svc .sm { font-size: calc(var(--w) * 0.2); }
+  .svc .md { font-size: calc(var(--w) * 0.3); }
+  .svc .lg { font-size: calc(var(--w) * 0.5); }
+  .svc .dots { display: inline-flex; flex-direction: column; gap: 2px; }
+  .svc .dots b { width: 3px; height: 3px; border-radius: 50%; background: currentColor; display: block; }
+  .svc .smile { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .svc .smile u { display: block; width: 70%; height: 4px; border-bottom: 1.5px solid currentColor; border-radius: 0 0 50% 50%; text-decoration: none; }
+  .svc .play { width: 0; height: 0; border-left: calc(var(--w) * 0.2) solid currentColor; border-top: calc(var(--w) * 0.12) solid transparent; border-bottom: calc(var(--w) * 0.12) solid transparent; }
+  @keyframes drift { from { transform: translate(0, 0) rotate(0deg); } to { transform: translate(6px, -10px) rotate(4deg); } }
+  @media (prefers-reduced-motion: reduce) { .svc i { animation: none; } }
+
+  /* ---------- Section 2: Pem, what it is, a peek at the apps ---------- */
+  /* Three times the old gap above it; its content fades in as the hero's line fades out */
+  .pitch { position: relative; z-index: 2; text-align: center; padding: 280px 0 110px; }
+  .pitch > .wrap { will-change: opacity, transform; }
+  .pitch .pem-mark { height: clamp(45px, 5.6vw, 67px); margin: 0 auto 56px; }
+  .pitch .sub { color: var(--accent); }
+  .pitch h2 { font-size: clamp(32px, 4.6vw, 55px); line-height: 1.05; max-width: 14em; margin: 0 auto 22px; font-weight: 500; }
+  .peek { max-width: 1080px; margin: 64px auto 0; height: clamp(260px, 36vw, 490px); overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 45%, transparent 100%); }
+  .devices { display: grid; text-align: left; }
+  .devices figure { margin: 0; grid-area: 1 / 1; }
+  .devices img { display: block; width: 100%; height: auto; }
+  .tv-shot { justify-self: start; width: 86%; background: #050505; padding: 1.1%; border: 1.5px solid #34343a; border-radius: 6px; box-shadow: 0 40px 90px -40px rgba(77, 163, 255, 0.22); }
+  .devices .phone-shot { justify-self: end; align-self: start; width: 27%; margin-top: 11%; background: #050505; padding: 1.6%; border: 1.5px solid #3a3a40; border-radius: clamp(22px, 3.6vw, 44px); box-shadow: -18px 30px 60px rgba(0, 0, 0, 0.75); position: relative; z-index: 1; }
+  .phone-shot img { border-radius: clamp(17px, 2.9vw, 36px); }
+
+  /* ---------- The two apps: full tiles, the screens set into them, copy above and below ---------- */
+  .apps { position: relative; z-index: 2; padding: 0 0 20px; }
+  .apps .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 64px clamp(24px, 4vw, 64px) 0; }
+  .tile .kicker { color: var(--accent); margin-bottom: 12px; }
+  .tile h3 { font-weight: 500; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.1; margin: 0 auto 14px; max-width: 14em; }
+  .tile p.copy { font-family: "Open Sans", Arial, sans-serif; font-weight: 400; letter-spacing: 0; font-size: 17px; line-height: 1.6; margin: 0 auto; max-width: 28em; }
+  /* iPhone tile: deep blue, the top of the phone in the middle fading out under the Seen list, copy below */
+  .tile.blue { background: #0b4fae; --ink: #f1efe8; --soft: rgba(241, 239, 232, 0.72); color: var(--ink); }
+  .tile.blue .kicker { color: #bcd8ff; }
+  .tile.blue p.copy { color: rgba(241, 239, 232, 0.86); }
+  .tile .phone-crop { width: min(56%, 290px); aspect-ratio: 270 / 300; margin: 30px auto 26px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%); mask-image: linear-gradient(to bottom, #000 58%, transparent 100%); }
+  /* Line drawings of the app screens, in the tile's own ink */
+  .draw-phone, .draw-tv { display: block; width: 100%; height: auto; color: var(--ink); overflow: visible; }
+  .draw-phone .t, .draw-tv .t { fill: currentColor; stroke: none; }
+  .draw-phone .soft, .draw-tv .soft { opacity: .6; }
+  .draw-phone .acc { fill: #bcd8ff; }
+  .draw-phone .dots, .draw-tv .dots { stroke-width: 1.2; stroke-dasharray: 0.1 3.4; opacity: .55; }
+  .draw-tv .bar { opacity: .35; } .draw-tv .faint { opacity: .22; }
+  .draw-tv .block { fill: var(--ink); stroke: none; }
+  .draw-tv .rev { fill: var(--paper); }
+  .draw-tv .acc { fill: var(--accent); }
+  .draw-tv .rev-sq rect { stroke: var(--paper); stroke-width: 1.2; }
+  .draw-tv .rev-sq .go-d { fill: #7fc496; stroke: #7fc496; }
+  .draw-tv .rev-bar { stroke: var(--paper); opacity: .4; }
+  .draw-tv .sq { stroke-width: 1.1; } .draw-tv .sq.ink { fill: currentColor; } .draw-tv .sq.go { fill: var(--go); stroke: var(--go); }
+  .tile.blue p.copy { padding-bottom: 64px; }
+  /* Apple TV tile: copy on top, the TV rising from the bottom edge (like the light callout) */
+  .tile h3.two { max-width: none; white-space: nowrap; font-size: clamp(16px, 2.3vw, 38px); }
+  /* the TV fills the rest of the tile, so it sits right under the copy whatever the iPhone tile's height */
+  .tile .tv { width: 115%; flex: 1 1 auto; min-height: clamp(168px, 19vw, 280px); overflow: hidden; margin: 0; transform: translate(12%, 0); }
+  .tile .tv img { display: block; width: 100%; height: auto; }
+  .tile.news .tv-copy { margin-bottom: 40px; }
+
+  /* ---------- Section 3: the signup, on newsprint, big ---------- */
+  .notify { padding: 110px 0 120px; text-align: center; position: relative; z-index: 2; }
+  .notify h2 { font-size: clamp(30px, 4vw, 52px); margin-bottom: 40px; }
+  .signup-slot { max-width: 760px; margin: 0 auto; }
+  .signup .field { height: 74px; font-size: 20px; padding: 0 26px; }
+  .signup .btn { height: 74px; font-size: 16px; padding: 0 40px; }
+  .notify .form-note { font-size: 17px; margin-top: 18px; color: var(--ink); }
+  .signup { display: flex; gap: 0; }
+  .signup .field { flex: 1; }
+  .signup .btn { flex: none; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .form-note { font-size: 13px; color: var(--soft); margin: 12px 0 0; }
+  .form-msg { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: 0.01em; margin: 14px 0 0; }
+  .form-msg:empty { display: none; }
+  .form-msg.error { color: var(--stop); }
+  .done-box { border: 1.5px solid var(--ink); padding: 34px 30px 36px; text-align: center; animation: land .5s cubic-bezier(.2,.9,.3,1.3); }
+  .done-box p.sub { font-family: var(--display); font-weight: 600; font-size: clamp(13px, 1.2vw, 15px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); max-width: none; margin: 0 0 12px; }
+  .done-box h3 { font-weight: 800; font-size: clamp(28px, 3.4vw, 40px); margin: 0 0 10px; }
+  .done-box p { margin: 0 auto; max-width: 30em; font-family: "Open Sans", Arial, sans-serif; font-weight: 400; font-size: 18px; line-height: 1.55; letter-spacing: 0; }
+  .done-box:focus { outline: none; }
+  @keyframes land { from { transform: scale(.94); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .done-box { animation: none; } }
+  /* a little jiggle the first time the form scrolls into view */
+  .signup.jiggle { animation: jiggle .7s ease-in-out 2; }
+  @keyframes jiggle { 0%, 100% { transform: translateX(0) rotate(0); } 15% { transform: translateX(-8px) rotate(-1deg); } 30% { transform: translateX(7px) rotate(1deg); }
+    45% { transform: translateX(-5px) rotate(-.6deg); } 60% { transform: translateX(4px) rotate(.4deg); } 75% { transform: translateX(-2px); } }
+  @media (prefers-reduced-motion: reduce) { .signup.jiggle { animation: none; } }
+  .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
+  /* ---------- Section 4: questions ---------- */
+  .faq { padding: 100px 0; position: relative; z-index: 2; }
+  .faq .wrap { max-width: 860px; }
+  .faq h2 { text-align: center; margin-bottom: 40px; font-weight: 500; }
+  .faq details { border-top: 1px solid var(--rule); }
+  .faq details:last-of-type { border-bottom: 1px solid var(--rule); }
+  .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px 0;
+    font-family: var(--display); font-weight: 700; font-size: clamp(18px, 1.8vw, 22px); letter-spacing: -0.005em; line-height: 1.25; }
+  .faq summary::-webkit-details-marker { display: none; }
+  /* contents-page style: a blue number, the question, dot leaders across to the plus/minus */
+  .faq summary { justify-content: flex-start; gap: 14px; }
+  .faq summary .no { flex: none; width: 30px; font-weight: 800; font-size: 14px; letter-spacing: .1em; color: var(--accent); }
+  .faq summary .q { flex: 0 1 auto; }
+  .faq summary .lead { flex: 1 1 24px; min-width: 24px; border-bottom: 2px dotted var(--soft); opacity: .6; align-self: center; transform: translateY(3px); }
+
+  .faq details { overflow: hidden; }
+  .faq .pm::before, .faq .pm::after { transition: transform .35s cubic-bezier(.2,.8,.2,1) !important; }
+  /* plus when closed, minus when open: two bars, the upright one turns flat */
+  .faq .pm { flex: none; position: relative; width: 18px; height: 18px; margin-right: 2px; }
+  .faq .pm::before, .faq .pm::after { content: ""; position: absolute; left: 0; top: 8px; width: 18px; height: 2px; background: var(--ink); transition: transform .2s; }
+  .faq .pm::after { transform: rotate(90deg); }
+  .faq details[open] .pm::after { transform: rotate(0deg); }
+  .faq details[open].closing .pm::after { transform: rotate(90deg); }
+  .faq summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  .faq details p, .faq .reasons li { font-family: "Open Sans", Arial, sans-serif; font-weight: 400; letter-spacing: 0; color: rgba(230, 228, 220, 0.78); }
+  .faq details p { margin: 0 0 24px; font-size: 17px; line-height: 1.6; max-width: 40em; }
+  .faq .reasons { list-style: none; margin: 0 0 26px; padding: 0; max-width: 40em; }
+  .faq .reasons li { font-size: 17px; line-height: 1.5; padding: 0 0 14px 26px; position: relative; }
+  .faq .reasons li::before { content: ""; position: absolute; left: 4px; top: 0.6em; width: 7px; height: 7px; background: var(--accent); }
+  .faq .reasons b { font-family: var(--display); font-weight: 700; letter-spacing: 0; color: var(--ink); }
+
+  .faq details > p, .faq details > ul.reasons { margin-left: 44px; }
+  /* no hairlines between questions: only a rule above the first and below the last */
+  .faq details, .faq details:last-of-type { border: 0; }
+  .faq summary .q { letter-spacing: 0.04em; }
+
+  /* ---------- Footer ---------- */
+  footer { padding: 70px 0 36px; border-top: 1px solid var(--rule); text-align: center; position: relative; z-index: 2; }
+  footer h2 { font-size: clamp(20px, 2vw, 26px); max-width: 20em; margin: 0 auto 12px; font-weight: 500; }
+  footer .foot-mark { height: 30px; margin: 0 auto 22px; }
+  footer .sub { color: var(--accent); margin-bottom: 30px; }
+  footer { border-top: 0; }
+  /* Reactions: two buttons with live counts, a quick read on the idea */
+  .react { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 0 0 60px; }
+  .react button { display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 20px; border-radius: 26px; border: 1.5px solid var(--field);
+    background: var(--field); color: var(--ink); cursor: pointer; white-space: nowrap; font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: 0; transition: transform .15s, border-color .15s; }
+  .react button .e { font-size: 24px; line-height: 1; }
+  .react button .t { font-weight: 600; }
+  .react button .n { padding-left: 10px; border-left: 1.5px solid rgba(230, 228, 220, 0.2); }
+  .react button:hover { transform: translateY(-2px); }
+  .react button[aria-pressed="true"] { border-color: var(--accent); }
+  .react button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .react button.pop .e { animation: pop .35s ease-out; }
+  @keyframes pop { 50% { transform: scale(1.35); } }
+  footer small { display: block; font-family: var(--display); font-weight: 600; font-size: 11px; letter-spacing: 0.16em; color: var(--soft); }
+
+  /* ---------- Narrow screens ---------- */
+  @media (max-width: 720px) {
+    .hero { min-height: 78vh; padding: 30px 0 60px; }
+    .sub { font-size: 11px; letter-spacing: 0.12em; }
+    br.wide { display: none; }
+    .pitch { padding: 160px 0 70px; }
+    .notify { padding: 70px 0 80px; }
+    .apps { padding-bottom: 10px; }
+    .apps .grid { grid-template-columns: minmax(0, 1fr); }
+    .tile { padding: 48px 22px 0; }
+    .tile .tv { min-height: 0; height: 161px; flex: none; }
+    .tile h3.two { white-space: normal; font-size: 26px; }
+    .signup .field, .signup .btn { height: 62px; }
+    .signup .field { font-size: 17px; }
+    .peek { margin-top: 40px; height: 180px; }
+    .signup { flex-direction: column; gap: 10px; }
+    .signup .field { flex: none; }
+    .signup .btn { width: 100%; }
+    .faq { padding: 68px 0; }
+    .digit { width: 21px; height: 28px; }
+    .digit .strip span, .digit.comma span { height: 28px; line-height: 28px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="row">
+      <div class="ticker" aria-live="polite">
+        <div class="digits" data-counter aria-hidden="true"></div>
+        <div class="ticker-label" data-counter-label>On the<br><b>waiting list</b></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Badges for the services, filled in by the script below -->
+  <div class="funnel" aria-hidden="true"></div>
+
+  <!-- Section 1: hero. Fades out as you scroll -->
+  <section class="hero">
+    <div class="wrap" id="heroCopy">
+      <h1>Every streaming service<br class="wide"> has an algorithm for you. <span class="light">None of them have an<br class="wide"> algorithm for your household.</span></h1>
+    </div>
+  </section>
+
+  <!-- Section 2: Pem, and a peek at the apps. Fades in as you scroll -->
+  <section class="pitch">
+    <div class="wrap" id="pitchCopy">
+      <svg class="pem-mark" viewBox="0 0 87 45" role="img" aria-label="Pem"><g class="frame"><rect x="0" y="0" width="87" height="4"/><rect x="0" y="8" width="9" height="3"/><rect x="0" y="15" width="9" height="5"/><rect x="0" y="23" width="9" height="7"/><rect x="78" y="8" width="9" height="3"/><rect x="78" y="15" width="9" height="5"/><rect x="0" y="35" width="87" height="10"/></g><rect class="period" x="78" y="23" width="9" height="7"/><text x="11.26" y="30" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27" letter-spacing="0">Pem</text></svg>
+      <h2>Your household's personal TV programming director.</h2>
+      <p class="sub">iPhone and Apple TV apps coming soon</p>
+
+      <div class="peek" id="peek">
+        <div class="devices">
+          <figure class="tv-shot">
+            <img src="img/apple-tv.jpg" width="1600" height="900" alt="Pem on Apple TV: Today's Program, an evening of series from Apple TV, Prime Video and Peacock, with Severance as one of Pem's Picks, and On Deck below">
+          </figure>
+          <figure class="phone-shot">
+            <img src="img/iphone.jpg" width="700" height="1522" alt="Pem on iPhone: Pem's Picks, titles picked for the household with Add to Watch List, Not for me and Seen it buttons">
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The two apps -->
+  <section class="apps">
+    <div class="grid">
+      <article class="tile blue">
+        <p class="kicker">On your iPhone</p>
+        <h3>Your tastes. Your lists.<br> Your influence.</h3>
+        <div class="phone-crop"><svg class="draw-phone" viewBox="0 0 270 340" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="A drawing of Pem on iPhone: your Watch List and the titles you've seen">
+<rect x="4" y="4" width="262" height="420" rx="40" stroke-width="2.4"/>
+<rect x="13" y="13" width="244" height="420" rx="32" stroke-width="1"/>
+<rect x="103" y="22" width="64" height="18" rx="9" fill="currentColor" stroke="none"/>
+<text x="38" y="35" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="9" class="t">2:33</text>
+<path d="M206 33 q5 -6 10 0 M208 35 q3 -3 6 0"/><rect x="222" y="27" width="18" height="9" rx="2.5"/><rect x="224" y="29" width="12" height="5" rx="1" fill="currentColor" stroke="none"/>
+<circle cx="38" cy="66" r="1.8" fill="currentColor"/><path d="M33 61 q-3 5 0 10 M43 61 q3 5 0 10 M30 58 q-5 8 0 16 M46 58 q5 8 0 16" stroke-width="1.3"/>
+<g transform="translate(116 57) scale(.44)" fill="currentColor" stroke="none"><rect x="0" y="0" width="87" height="4"/><rect x="0" y="8" width="9" height="3"/><rect x="0" y="15" width="9" height="5"/><rect x="0" y="23" width="9" height="7"/><rect x="78" y="8" width="9" height="3"/><rect x="78" y="15" width="9" height="5"/><rect x="0" y="35" width="87" height="10"/><rect x="78" y="23" width="9" height="7" class="acc"/><text x="11.26" y="30" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27">Pem</text></g>
+<circle cx="230" cy="64" r="5.5"/><path d="M234 68 l4 4"/>
+<text x="62" y="94" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" letter-spacing="1.2" class="t">LISTS</text><path d="M60 99 H88" stroke-width="2.4"/>
+<text x="112" y="94" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="6.5" letter-spacing="1.2" class="t soft">PEM’S PICKS</text>
+<text x="180" y="94" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="6.5" letter-spacing="1.2" class="t soft">PROFILE</text>
+<path d="M13 104 H257" stroke-width="1"/>
+<rect x="24" y="118" width="222" height="72" rx="10"/>
+<text x="38" y="140" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="11" letter-spacing=".6" class="t">WATCH LIST</text><text x="126.0" y="140" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1" class="t soft">28 TITLES</text>
+<path d="M229 132 l4 4 -4 4"/>
+<text x="38" y="162" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">SERIES</text><path d="M66 161 H212" class="dots"/><text x="232" y="162" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">21</text>
+<text x="38" y="178" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">MOVIES</text><path d="M66 177 H212" class="dots"/><text x="232" y="178" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">7</text>
+<rect x="24" y="202" width="222" height="72" rx="10"/>
+<text x="38" y="224" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="11" letter-spacing=".6" class="t">SEEN</text><text x="76.8" y="224" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1" class="t soft">235 TITLES</text>
+<path d="M229 216 l4 4 -4 4"/>
+<text x="38" y="246" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">SERIES</text><path d="M66 245 H212" class="dots"/><text x="232" y="246" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">121</text>
+<text x="38" y="262" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">MOVIES</text><path d="M66 261 H212" class="dots"/><text x="232" y="262" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">114</text>
+<rect x="24" y="286" width="222" height="72" rx="10"/>
+<text x="38" y="308" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="11" letter-spacing=".6" class="t">REWATCH LIST</text><text x="142.39999999999998" y="308" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1" class="t soft">41 TITLES</text>
+<path d="M229 300 l4 4 -4 4"/>
+<text x="38" y="330" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">SERIES</text><path d="M66 329 H212" class="dots"/><text x="232" y="330" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">13</text>
+<text x="38" y="346" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="1.2" class="t soft">MOVIES</text><path d="M66 345 H212" class="dots"/><text x="232" y="346" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" text-anchor="end" class="t">28</text>
+</svg></div>
+        <p class="copy">Keep a watch list, rate what you've seen, and find new favorites in Pem's Picks. Everything you do shapes your household's next lineup.</p>
+      </article>
+      <article class="tile news">
+        <div class="tv-copy">
+          <p class="kicker">On Apple TV</p>
+          <h3 class="two">Skip the negotiations and<br class="wide"> get straight to the good stuff.</h3>
+          <p class="copy">By combining the tastes of multiple people, Pem can introduce everyone to something outside their usual viewing habits.</p>
+        </div>
+        <div class="tv"><svg class="draw-tv" viewBox="0 0 860 330" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="A drawing of Pem on Apple TV: Pem thinks the whole household will like a show, with each person's ratings of similar titles side by side">
+<path d="M3 2000 V18 Q3 3 18 3 H900" stroke-width="2.6"/>
+<path d="M18 2000 V30 Q18 18 30 18 H900" stroke-width="1"/>
+<text x="46" y="62" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="13" class="t">43 <tspan font-weight="500">MIN</tspan></text>
+<rect x="140" y="44" width="42" height="26" rx="6"/><text x="161" y="58" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="8" text-anchor="middle" class="t">prime</text><path d="M152 62 q9 4 18 0" stroke-width="1"/>
+<text x="210" y="58" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="17" class="t">BRASSIC<tspan font-weight="500">—Comedy</tspan></text>
+<path d="M210 74 H520" stroke-width="5" class="bar"/><path d="M210 90 H600" stroke-width="5" class="bar faint"/>
+<path d="M210 110 H900" stroke-width="2.4"/>
+<rect x="222" y="124" width="216" height="196" class="block"/>
+<text x="240" y="150" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="8" letter-spacing="1.8" class="acc t">PEM’S TAKE</text>
+<text font-family="Montserrat, Arial, sans-serif" font-weight="500" font-size="18" class="t rev"><tspan x="240" y="178">Pem thinks the</tspan><tspan x="240" y="200">whole household</tspan><tspan x="240" y="222">will like it</tspan></text>
+<g class="rev-sq"><rect x="240" y="236" width="10" height="10" class="go-d"/><rect x="254" y="236" width="10" height="10" class="go-d"/><rect x="268" y="236" width="10" height="10" class="go-d"/><rect x="282" y="236" width="10" height="10" class="go-d"/><rect x="296" y="236" width="10" height="10" class=""/></g>
+<path d="M240 270 H400 M240 286 H350" stroke-width="4" class="bar rev-bar"/>
+<path d="M454 110 V2000" stroke-width="1.2"/>
+<text x="474" y="140" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" letter-spacing="1.6" class="t">SIMILAR TITLE</text><text x="642" y="140" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="7.5" letter-spacing="1.6" class="t">RATINGS</text>
+<path d="M474 148 H900" stroke-width="1"/>
+<text x="474" y="172" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">THE GENTLEMEN</text><path d="M573.6 171 H632" class="dots"/><rect x="642" y="163" width="10" height="10" stroke-width="1.1"/><text x="647" y="170.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="164" width="8" height="8" class="sq ink"/><rect x="670" y="164" width="8" height="8" class="sq ink"/><rect x="682" y="164" width="8" height="8" class="sq ink"/><rect x="694" y="164" width="8" height="8" class="sq "/><rect x="706" y="164" width="8" height="8" class="sq "/><rect x="726" y="163" width="10" height="10" stroke-width="1.1"/><text x="731" y="170.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><path d="M742 168 h10" /><text x="474" y="193" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">BREAKING BAD</text><path d="M566.4 192 H632" class="dots"/><rect x="642" y="184" width="10" height="10" stroke-width="1.1"/><text x="647" y="191.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="185" width="8" height="8" class="sq go"/><rect x="670" y="185" width="8" height="8" class="sq go"/><rect x="682" y="185" width="8" height="8" class="sq go"/><rect x="694" y="185" width="8" height="8" class="sq go"/><rect x="706" y="185" width="8" height="8" class="sq "/><rect x="726" y="184" width="10" height="10" stroke-width="1.1"/><text x="731" y="191.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><rect x="742" y="185" width="8" height="8" class="sq go"/><rect x="754" y="185" width="8" height="8" class="sq go"/><rect x="766" y="185" width="8" height="8" class="sq go"/><rect x="778" y="185" width="8" height="8" class="sq go"/><rect x="790" y="185" width="8" height="8" class="sq "/><text x="474" y="214" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">PARASITE</text><path d="M537.6 213 H632" class="dots"/><rect x="642" y="205" width="10" height="10" stroke-width="1.1"/><text x="647" y="212.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="206" width="8" height="8" class="sq go"/><rect x="670" y="206" width="8" height="8" class="sq go"/><rect x="682" y="206" width="8" height="8" class="sq go"/><rect x="694" y="206" width="8" height="8" class="sq go"/><rect x="706" y="206" width="8" height="8" class="sq "/><rect x="726" y="205" width="10" height="10" stroke-width="1.1"/><text x="731" y="212.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><rect x="742" y="206" width="8" height="8" class="sq go"/><rect x="754" y="206" width="8" height="8" class="sq go"/><rect x="766" y="206" width="8" height="8" class="sq go"/><rect x="778" y="206" width="8" height="8" class="sq go"/><rect x="790" y="206" width="8" height="8" class="sq "/><text x="474" y="235" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">REV.</text><path d="M508.8 234 H632" class="dots"/><rect x="642" y="226" width="10" height="10" stroke-width="1.1"/><text x="647" y="233.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="227" width="8" height="8" class="sq go"/><rect x="670" y="227" width="8" height="8" class="sq go"/><rect x="682" y="227" width="8" height="8" class="sq go"/><rect x="694" y="227" width="8" height="8" class="sq go"/><rect x="706" y="227" width="8" height="8" class="sq "/><rect x="726" y="226" width="10" height="10" stroke-width="1.1"/><text x="731" y="233.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><path d="M742 231 h10" /><text x="474" y="256" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">LUDWIG</text><path d="M523.2 255 H632" class="dots"/><rect x="642" y="247" width="10" height="10" stroke-width="1.1"/><text x="647" y="254.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="248" width="8" height="8" class="sq ink"/><rect x="670" y="248" width="8" height="8" class="sq ink"/><rect x="682" y="248" width="8" height="8" class="sq ink"/><rect x="694" y="248" width="8" height="8" class="sq "/><rect x="706" y="248" width="8" height="8" class="sq "/><rect x="726" y="247" width="10" height="10" stroke-width="1.1"/><text x="731" y="254.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><rect x="742" y="248" width="8" height="8" class="sq go"/><rect x="754" y="248" width="8" height="8" class="sq go"/><rect x="766" y="248" width="8" height="8" class="sq go"/><rect x="778" y="248" width="8" height="8" class="sq go"/><rect x="790" y="248" width="8" height="8" class="sq "/><text x="474" y="277" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">WILD BILL</text><path d="M544.8 276 H632" class="dots"/><rect x="642" y="268" width="10" height="10" stroke-width="1.1"/><text x="647" y="275.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="269" width="8" height="8" class="sq ink"/><rect x="670" y="269" width="8" height="8" class="sq ink"/><rect x="682" y="269" width="8" height="8" class="sq ink"/><rect x="694" y="269" width="8" height="8" class="sq "/><rect x="706" y="269" width="8" height="8" class="sq "/><rect x="726" y="268" width="10" height="10" stroke-width="1.1"/><text x="731" y="275.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><path d="M742 273 h10" /><text x="474" y="298" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">BAD SISTERS</text><path d="M559.2 297 H632" class="dots"/><rect x="642" y="289" width="10" height="10" stroke-width="1.1"/><text x="647" y="296.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="290" width="8" height="8" class="sq go"/><rect x="670" y="290" width="8" height="8" class="sq go"/><rect x="682" y="290" width="8" height="8" class="sq go"/><rect x="694" y="290" width="8" height="8" class="sq go"/><rect x="706" y="290" width="8" height="8" class="sq "/><rect x="726" y="289" width="10" height="10" stroke-width="1.1"/><text x="731" y="296.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><rect x="742" y="290" width="8" height="8" class="sq go"/><rect x="754" y="290" width="8" height="8" class="sq go"/><rect x="766" y="290" width="8" height="8" class="sq go"/><rect x="778" y="290" width="8" height="8" class="sq go"/><rect x="790" y="290" width="8" height="8" class="sq "/><text x="474" y="319" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="10.5" class="t">BEEF</text><path d="M508.8 318 H632" class="dots"/><rect x="642" y="310" width="10" height="10" stroke-width="1.1"/><text x="647" y="317.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">K</text><rect x="658" y="311" width="8" height="8" class="sq ink"/><rect x="670" y="311" width="8" height="8" class="sq ink"/><rect x="682" y="311" width="8" height="8" class="sq ink"/><rect x="694" y="311" width="8" height="8" class="sq "/><rect x="706" y="311" width="8" height="8" class="sq "/><rect x="726" y="310" width="10" height="10" stroke-width="1.1"/><text x="731" y="317.5" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="6.5" text-anchor="middle" class="t">A</text><path d="M742 315 h10" />
+</svg></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Section 4: questions -->
+  <section class="faq">
+    <div class="wrap">
+      <h2>Questions?</h2>
+      <details open>
+        <summary><span class="no" aria-hidden="true">01</span><span class="q">What is Pem?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
+        <p>Every streaming service has an algorithm for you, but none of them plans for your household. Pem changes that by combining everyone's tastes, watch lists and subscriptions into one simple, personalized TV guide for the time you spend watching together.</p>
+        <p>Whether you have an hour or a whole evening, Pem builds a lineup everyone can enjoy. No endless scrolling, no debating what to watch. Just more time enjoying TV together.</p>
+      </details>
+      <details>
+        <summary><span class="no" aria-hidden="true">02</span><span class="q">Why should I use Pem?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
+        <ul class="reasons">
+          <li><b>Better together.</b> Pem combines everyone's tastes and watch lists to find entertainment the whole household can enjoy.</li>
+          <li><b>Less scrolling, more watching.</b> Stop spending half the evening deciding what to watch. Pem already has a plan.</li>
+          <li><b>Make the most of your time.</b> Whether you have 45 minutes or three hours, Pem creates a lineup that fits your evening.</li>
+          <li><b>Take turns without keeping score.</b> Pem balances everyone's preferences so one person's favorites don't always win.</li>
+          <li><b>Your watch list, finally watched.</b> Turn that ever-growing list of things you've been meaning to watch into an actual plan.</li>
+          <li><b>Discover something new.</b> Pem's Picks introduce you to great shows and movies you might never have chosen as a household.</li>
+        </ul>
+      </details>
+      <details>
+        <summary><span class="no" aria-hidden="true">03</span><span class="q">How does it work?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
+        <p>Each person in your household keeps their own lists and ratings in the iPhone app, which teaches Pem what they like. When you sit down to watch together, open Pem on Apple TV to see the lineup it planned for you. Fewer options, chosen in less time, and pressing Watch opens the right streaming app.</p>
+      </details>
+      <details>
+        <summary><span class="no" aria-hidden="true">04</span><span class="q">Which streaming services does it work with?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
+        <p>The ones you already pay for, including Netflix, Prime Video, Apple TV, HBO Max, Disney+, Hulu, Peacock, Paramount+ and more. Pem plans across all of them at once, so you don't have to open each app to see what's there.</p>
+      </details>
+      <details>
+        <summary><span class="no" aria-hidden="true">05</span><span class="q">What will happen with my data?</span><span class="lead" aria-hidden="true"></span><span class="pm" aria-hidden="true"></span></summary>
+        <p>It stays with your household. Pem never asks for your streaming passwords or reads your accounts, and it will never sell your viewing data. Pem's recommendations are never for sale, either.</p>
+      </details>
+    </div>
+  </section>
+  <!-- Section 3: the signup -->
+  <section class="notify news" id="notify">
+    <div class="wrap">
+      <h2>Be the first to know.</h2>
+      <div class="signup-slot" data-source="hero">
+        <form class="signup" novalidate>
+          <label class="sr-only" for="email">Email address</label>
+          <input class="field" id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Your email address" required maxlength="254">
+          <span class="hp" aria-hidden="true"><input name="company" tabindex="-1" autocomplete="off"></span>
+          <button class="btn" type="submit">Notify me</button>
+        </form>
+        <p class="form-msg" role="status" aria-live="polite"></p>
+        <p class="form-note">You'll only receive one email when Pem is available. Promise!</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <svg class="pem-mark foot-mark" viewBox="0 0 87 45" role="img" aria-label="Pem"><g class="frame"><rect x="0" y="0" width="87" height="4"/><rect x="0" y="8" width="9" height="3"/><rect x="0" y="15" width="9" height="5"/><rect x="0" y="23" width="9" height="7"/><rect x="78" y="8" width="9" height="3"/><rect x="78" y="15" width="9" height="5"/><rect x="0" y="35" width="87" height="10"/></g><rect class="period" x="78" y="23" width="9" height="7"/><text x="11.26" y="30" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="27" letter-spacing="0">Pem</text></svg>
+    <h2>Streaming knows you. Pem knows us.</h2>
+    <p class="sub">Coming soon</p>
+    <div class="react" role="group" aria-label="What do you think of Pem?">
+      <button type="button" data-react="tada" aria-pressed="false" aria-label="I'm excited for this"><span class="e" aria-hidden="true">🎉</span><span class="t">I'm excited for this</span><span class="n" data-react-count="tada">0</span></button>
+      <button type="button" data-react="down" aria-pressed="false" aria-label="Meh, not for me"><span class="e" aria-hidden="true">👎</span><span class="t">Meh, not for me</span><span class="n" data-react-count="down">0</span></button>
+    </div>
+    <small>© <span data-year>2026</span> Pem</small>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // The Google Apps Script web app that saves signups to the Google Sheet (see site/README.md).
+  // Paste the address from Deploy > New deployment > Web app between the quotes.
+  var SIGNUP_URL = "https://script.google.com/macros/s/AKfycbxU8XqkgszP4AwD1Q0ZhPNxInrAzozmXNSDc8d4LOEjDKNil2dx94pd2CXXwAEsDhXn/exec";
+
+  /* ---------- Waiting-list counter ---------- */
+  var count = null;
+  var counters = document.querySelectorAll("[data-counter]");
+  var labels = document.querySelectorAll("[data-counter-label]");
+
+  // Odometer: each digit is a strip of 0-9 that rolls to its place.
+  function render(n) {
+    var s = String(n);
+    var minLen = 4;
+    var padded = s.length < minLen ? "0".repeat(minLen - s.length) + s : s;
+    var leading = padded.length - s.length;
+    counters.forEach(function (el) {
+      var chars = [];
+      for (var i = 0; i < padded.length; i++) {
+        var fromEnd = padded.length - i;
+        chars.push({ d: padded[i], lead: i < leading });
+        if (fromEnd > 1 && (fromEnd - 1) % 3 === 0 && i >= leading) chars.push({ comma: true });
+      }
+      var key = chars.map(function (c) { return c.comma ? "," : (c.lead ? "l" : "d"); }).join("");
+      if (el.dataset.shape !== key) {
+        el.innerHTML = chars.map(function (c) {
+          if (c.comma) return '<div class="digit comma"><span>,</span></div>';
+          var spans = ""; for (var k = 0; k <= 9; k++) spans += "<span>" + k + "</span>";
+          return '<div class="digit' + (c.lead ? " lead" : "") + '"><div class="strip">' + spans + "</div></div>";
+        }).join("");
+        el.dataset.shape = key;
+        el.offsetHeight; // start from 0 so the first load rolls up
+      }
+      var strips = el.querySelectorAll(".digit:not(.comma)");
+      var digitsOnly = chars.filter(function (c) { return !c.comma; });
+      strips.forEach(function (d, i) {
+        var h = d.getBoundingClientRect().height || 32;
+        d.querySelector(".strip").style.transform = "translateY(" + (-h * Number(digitsOnly[i].d)) + "px)";
+      });
+    });
+    labels.forEach(function (l) {
+      l.innerHTML = n === 0 ? "Be the first<br><b>on the list</b>" : "On the<br><b>waiting list</b>";
+    });
+  }
+
+  function load() {
+    if (!SIGNUP_URL) return;
+    fetch(SIGNUP_URL)
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (typeof j.count === "number" && j.count !== count) { count = j.count; render(count); }
+        if (j.reactions) showReactions(j.reactions);
+      })
+      .catch(function () {});
+  }
+  render(0); load();
+  setInterval(load, 120000);
+
+  /* ---------- Reactions ---------- */
+  // Totals live in the same Google Apps Script as the waiting list; this browser remembers its own vote
+  // so a click again takes it back, and switching moves it.
+  var reacts = { tada: 0, down: 0 };
+  var mine = null;
+  try { mine = localStorage.getItem("pemReaction"); } catch (e) {}
+  function showReactions(r) {
+    reacts.tada = r.tada || 0; reacts.down = r.down || 0;
+    document.querySelectorAll("[data-react-count]").forEach(function (el) { el.textContent = reacts[el.dataset.reactCount].toLocaleString(); });
+    document.querySelectorAll("[data-react]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.react === mine)); });
+  }
+  // Not connected yet: count this browser's own vote so a selected button never reads 0
+  if (!SIGNUP_URL && mine && reacts.hasOwnProperty(mine)) reacts[mine] = 1;
+  showReactions(reacts);
+  document.querySelectorAll("[data-react]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var pick = b.dataset.react, undo = mine;
+      if (undo === pick) { reacts[pick] = Math.max(0, reacts[pick] - 1); mine = null; pick = null; }
+      else { if (undo) reacts[undo] = Math.max(0, reacts[undo] - 1); reacts[pick] += 1; mine = pick; }
+      try { mine ? localStorage.setItem("pemReaction", mine) : localStorage.removeItem("pemReaction"); } catch (e) {}
+      showReactions(reacts);
+      b.classList.remove("pop"); b.offsetWidth; if (mine) b.classList.add("pop");
+      if (!SIGNUP_URL) return;
+      fetch(SIGNUP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ react: pick, undo: undo }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j.reactions) showReactions(j.reactions); })
+        .catch(function () {});
+    });
+  });
+
+  /* ---------- Signup ---------- */
+  var EMAIL = /^[^\s@=+\-][^\s@]*@[^\s@.]+(\.[^\s@.]+)+$/;
+  document.querySelectorAll(".signup-slot").forEach(function (slot) {
+    var form = slot.querySelector("form");
+    var msg = slot.querySelector(".form-msg");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = form.email.value.trim();
+      msg.className = "form-msg";
+      if (!EMAIL.test(email)) { msg.textContent = "That email doesn't look quite right."; msg.classList.add("error"); form.email.focus(); return; }
+      var btn = form.querySelector("button");
+      btn.disabled = true; msg.textContent = "Saving your seat…";
+      if (!SIGNUP_URL) {
+        // Not connected yet. On this Mac, play the success so it can be previewed (nothing is saved); elsewhere, say so.
+        if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { count = (count || 0) + 1; render(count); success(slot, false); return; }
+        btn.disabled = false; msg.textContent = "Signups aren't connected yet."; msg.classList.add("error"); return;
+      }
+      // Sent as plain text so the browser makes a simple request, which Google Apps Script accepts from another site.
+      fetch(SIGNUP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ email: email, source: slot.dataset.source, company: form.company.value })
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok !== false, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.j.error || "Something went wrong. Please try again.");
+          if (typeof res.j.count === "number") { count = res.j.count; render(count); }
+          success(slot, res.j.already);
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          msg.textContent = err.message || "Something went wrong. Please try again.";
+          msg.classList.add("error");
+        });
+    });
+  });
+
+  function success(slot, already) {
+    slot.innerHTML = '<div class="done-box" tabindex="-1"><p class="sub">' + (already ? "Already saved" : "You're on the list") + "</p><h3>" +
+      (already ? "Good news: you're already in." : "Thank you!") + "</h3><p>" +
+      (already ? "That email is already on the list. You'll hear from Pem once, when it's available."
+               : "We're excited you're interested in Pem. You'll be among the first to know when the apps are available.") + "</p></div>";
+    slot.querySelector(".done-box").focus({ preventScroll: true });
+    if (!already) confetti();
+  }
+
+  // Jiggle the form every time it scrolls well into view (it re-arms once it has left the screen)
+  var signupForm = document.querySelector(".signup");
+  if (signupForm && "IntersectionObserver" in window) {
+    var jiggleTimer = null;
+    signupForm.addEventListener("animationend", function () { signupForm.classList.remove("jiggle"); });
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) {
+          jiggleTimer = setTimeout(function () { signupForm.classList.remove("jiggle"); void signupForm.offsetWidth; signupForm.classList.add("jiggle"); }, 250);
+        } else {
+          clearTimeout(jiggleTimer);
+        }
+      });
+    }, { threshold: 1, rootMargin: "0px 0px -20% 0px" }).observe(signupForm);
+  }
+
+  // Questions open and close smoothly: the height eases, the answer fades and slides in
+  document.querySelectorAll(".faq details").forEach(function (d) {
+    var sum = d.querySelector("summary"), anim = null;
+    sum.addEventListener("click", function (e) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !d.animate) return;
+      e.preventDefault();
+      var body = [].slice.call(d.children).filter(function (c) { return c !== sum; });
+      var start = d.offsetHeight + "px", opening = !d.open || d.dataset.closing === "1";
+      if (anim) anim.cancel();
+      if (opening) {
+        d.dataset.closing = ""; d.classList.remove("closing"); d.open = true;
+        var end = d.offsetHeight + "px";
+        anim = d.animate({ height: [start, end] }, { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" });
+        body.forEach(function (b) { b.animate({ opacity: [0, 1], transform: ["translateY(-10px)", "translateY(0)"] }, { duration: 420, delay: 60, easing: "ease-out", fill: "backwards" }); });
+      } else {
+        d.dataset.closing = "1"; d.classList.add("closing");
+        anim = d.animate({ height: [start, sum.offsetHeight + "px"] }, { duration: 320, easing: "cubic-bezier(.4,0,.2,1)" });
+        body.forEach(function (b) { var f = b.animate({ opacity: [1, 0] }, { duration: 200, fill: "forwards" }); f.onfinish = function () { f.cancel(); }; });
+      }
+      anim.onfinish = function () { if (d.dataset.closing === "1") { d.open = false; d.dataset.closing = ""; d.classList.remove("closing"); } anim = null; };
+    });
+  });
+
+  /* ---------- Confetti across the whole screen (square bits, like the brand's square corners) ---------- */
+  function confetti() {
+    if (reduced) return;
+    var c = document.createElement("canvas"); c.className = "confetti"; c.setAttribute("aria-hidden", "true");
+    document.body.appendChild(c);
+    var dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+    c.width = W * dpr; c.height = H * dpr;
+    var g = c.getContext("2d"); g.scale(dpr, dpr);
+    var colors = ["#4da3ff", "#0a6bdb", "#e6e4dc", "#7fc496", "#f1efe8", "#201f1c", "#bcd8ff"];
+    var bits = [];
+    for (var i = 0; i < 220; i++) {
+      var fromLeft = i % 2 === 0;
+      bits.push({ x: fromLeft ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.4),
+        vx: (fromLeft ? 1 : -1) * (6 + Math.random() * 12), vy: -(10 + Math.random() * 16),
+        s: 6 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+        tilt: Math.random() * 6, color: colors[i % colors.length] });
+    }
+    for (var j = 0; j < 90; j++) {  // a soft shower from the top too
+      bits.push({ x: Math.random() * W, y: -20 - Math.random() * H * 0.5, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 3,
+        s: 6 + Math.random() * 7, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, tilt: Math.random() * 6, color: colors[j % colors.length] });
+    }
+    var start = performance.now();
+    (function frame(now) {
+      var t = now - start;
+      g.clearRect(0, 0, W, H);
+      var alive = false;
+      bits.forEach(function (b) {
+        b.vy += 0.32; b.vx *= 0.985; b.vy *= 0.99; b.x += b.vx; b.y += b.vy; b.r += b.vr; b.tilt += 0.1;
+        if (b.y < H + 30) alive = true;
+        g.save(); g.translate(b.x, b.y); g.rotate(b.r);
+        g.globalAlpha = t > 3200 ? Math.max(0, 1 - (t - 3200) / 800) : 1;
+        g.fillStyle = b.color; g.fillRect(-b.s / 2, -b.s / 2 * Math.abs(Math.cos(b.tilt)), b.s, b.s * Math.abs(Math.cos(b.tilt)));
+        g.restore();
+      });
+      if (alive && t < 4000) requestAnimationFrame(frame); else c.remove();
+    })(start);
+  }
+
+  /* ---------- Service badges: scattered, then funneled into the apps ---------- */
+  // Drawn stand-ins like the app's own badges (a letter or short name in an outlined box), not the services' logos.
+  var MARKS = {
+    netflix: '<span class="lg">N</span>',
+    prime: '<span class="smile"><span class="md">prime</span><u></u></span>',
+    appletv: '<span class="md">tv</span>',
+    hbo: '<span class="md">HBO</span>',
+    peacock: '<span class="sm">peacock</span><span class="dots"><b></b><b></b><b></b></span>',
+    disney: '<span class="md">D+</span>',
+    hulu: '<span class="md">hulu</span>',
+    paramount: '<span class="md">P+</span>',
+    youtube: '<span class="play"></span>',
+    amc: '<span class="md">AMC</span>',
+    starz: '<span class="sm">STARZ</span>',
+    britbox: '<span class="sm">britbox</span>'
+  };
+  // Where each badge sits in the hero: x and y as a share of the hero, width in px, tilt, dimmed or not.
+  // Kept to the edges and corners so the headline stays clear.
+  var SPOTS = [
+    ["netflix", .08, .10, 96, -12], ["starz",   .03, .24, 66, -20, 1], ["disney",  .11, .35, 76, 14],
+    ["hulu",    .04, .48, 58, -10, 1], ["appletv", .10, .62, 86, -16], ["hbo",     .03, .75, 64, -4, 1],
+    ["youtube", .12, .86, 70, 18],  ["prime",   .05, .97, 70, 6, 1],
+    ["hbo",     .90, .08, 92, 10],  ["britbox", .97, .20, 82, 16, 1], ["hulu",    .88, .31, 80, -8],
+    ["netflix", .96, .43, 60, 22, 1], ["peacock", .90, .55, 96, -6],  ["amc",     .97, .68, 74, 9, 1],
+    ["paramount", .88, .80, 78, -14], ["prime",  .95, .93, 84, 8]
+  ];
+  var funnel = document.querySelector(".funnel");
+  var hero = document.querySelector(".hero");
+  var peek = document.getElementById("peek");
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var badges = SPOTS.map(function (s, i) {
+    var el = document.createElement("div");
+    el.className = "svc";
+    el.innerHTML = '<i class="' + (s[5] ? "dim" : "") + '" style="--w:' + s[3] + 'px;--d:' + (-i * 0.9) + 's">' + MARKS[s[0]] + "</i>";
+    funnel.appendChild(el);
+    return { el: el, x: s[1], y: s[2], w: s[3], r: s[4] };
+  });
+
+  var geo = null;
+  function measure() {
+    var main = document.querySelector("main").getBoundingClientRect();
+    var h = hero.getBoundingClientRect(), p = peek.getBoundingClientRect();
+    var narrow = innerWidth < 720, small = narrow ? 0.5 : 1;
+    geo = {
+      heroLeft: h.left - main.left, heroTop: h.top - main.top, heroW: h.width, heroH: h.height,
+      // aim just above the top edge of the TV screenshot, so every badge is gone before it gets there
+      tx: p.left - main.left + p.width / 2, ty: p.top - main.top - 28,
+      end: Math.max(1, (p.top + scrollY) - 28 - innerHeight * 0.55)
+    };
+    badges.forEach(function (b) {
+      var w = b.w * small, hgt = w * 0.66;
+      // on phones, hug the very edges so the headline stays clear
+      var x = narrow ? (b.x < 0.5 ? b.x * 0.3 : 1 - (1 - b.x) * 0.3) : b.x;
+      b.bx = geo.heroLeft + x * geo.heroW - w / 2;
+      b.by = geo.heroTop + b.y * geo.heroH - hgt / 2;
+      b.el.firstChild.style.setProperty("--w", w + "px");
+      b.cw = w; b.ch = hgt;
+    });
+    draw();
+  }
+  function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  // The hero's line fades out as you scroll; section 2 fades in to take its place
+  var heroCopy = document.getElementById("heroCopy"), pitchCopy = document.getElementById("pitchCopy");
+  function fades() {
+    if (reduced) return;
+    var out = Math.min(1, Math.max(0, scrollY / (hero.offsetHeight * 0.5)));
+    heroCopy.style.opacity = 1 - out;
+    heroCopy.style.transform = "translateY(" + (-40 * out) + "px)";
+    var top = pitchCopy.getBoundingClientRect().top;
+    var inn = Math.min(1, Math.max(0, (innerHeight - top) / (innerHeight * 0.5)));
+    pitchCopy.style.opacity = inn;
+    pitchCopy.style.transform = "translateY(" + (40 * (1 - inn)) + "px)";
+  }
+  function draw() {
+    fades();
+    if (!geo) return;
+    var p = reduced ? 0 : Math.min(1, Math.max(0, scrollY / geo.end));
+    badges.forEach(function (b, i) {
+      // stagger: some badges start a touch later so they arrive as a stream
+      var lag = (i % 5) * 0.04;
+      var t = ease(Math.min(1, Math.max(0, (p - lag) / (1 - lag))));
+      // a funnel: each badge curves inward first, then drops into the middle of the screenshots
+      var tx = 1 - Math.pow(1 - t, 2.2), ty = Math.pow(t, 1.7);
+      var x = b.bx + (geo.tx - b.cw / 2 - b.bx) * tx;
+      var y = b.by + (geo.ty - b.ch / 2 - b.by) * ty;
+      var sc = 1 - 0.7 * t;
+      var rot = b.r * (1 - t);
+      var op = t < 0.55 ? 1 : Math.max(0, 1 - (t - 0.55) / 0.37);
+      b.el.style.transform = "translate(" + x + "px," + y + "px) rotate(" + rot + "deg) scale(" + sc + ")";
+      b.el.style.opacity = op;
+    });
+  }
+  var ticking = false;
+  addEventListener("scroll", function () {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(function () { ticking = false; draw(); });
+  }, { passive: true });
+  addEventListener("resize", function () { measure(); if (count !== null) render(count); });
+  addEventListener("load", measure);
+  measure();
+})();
+</script>
+</body>
+</html>
